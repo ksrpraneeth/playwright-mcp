@@ -16,6 +16,7 @@
 
 import { z } from 'zod';
 import { defineTabTool } from './tool.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const uploadFile = defineTabTool({
   capability: 'core',
@@ -31,7 +32,9 @@ const uploadFile = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const modalState = tab.modalStates().find(state => state.type === 'fileChooser');
     if (!modalState)

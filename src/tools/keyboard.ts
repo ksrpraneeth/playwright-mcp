@@ -20,6 +20,7 @@ import { defineTabTool } from './tool.js';
 import { elementSchema } from './snapshot.js';
 import { generateLocator } from './utils.js';
 import * as javascript from '../javascript.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const pressKey = defineTabTool({
   capability: 'core',
@@ -35,7 +36,9 @@ const pressKey = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
     response.addCode(`// Press ${params.key}`);
     response.addCode(`await page.keyboard.press('${params.key}');`);
 
@@ -62,7 +65,9 @@ const type = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const locator = await tab.refLocator(params);
 

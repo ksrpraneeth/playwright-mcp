@@ -16,6 +16,7 @@
 
 import { z } from 'zod';
 import { defineTool } from './tool.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const listTabs = defineTool({
   capability: 'core-tabs',
@@ -49,7 +50,9 @@ const selectTab = defineTool({
 
   handle: async (context, params, response) => {
     await context.selectTab(params.index);
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
   },
 });
 
@@ -70,7 +73,9 @@ const newTab = defineTool({
     const tab = await context.newTab();
     if (params.url)
       await tab.navigate(params.url);
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
   },
 });
 
@@ -89,7 +94,9 @@ const closeTab = defineTool({
 
   handle: async (context, params, response) => {
     await context.closeTab(params.index);
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
   },
 });
 

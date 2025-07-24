@@ -16,6 +16,7 @@
 
 import { z } from 'zod';
 import { defineTabTool } from './tool.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const handleDialog = defineTabTool({
   capability: 'core',
@@ -32,7 +33,9 @@ const handleDialog = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const dialogState = tab.modalStates().find(state => state.type === 'dialog');
     if (!dialogState)

@@ -16,6 +16,7 @@
 
 import { z } from 'zod';
 import { defineTool } from './tool.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const wait = defineTool({
   capability: 'core',
@@ -58,7 +59,9 @@ const wait = defineTool({
     }
 
     response.addResult(`Waited for ${params.text || params.textGone || params.time}`);
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
   },
 });
 

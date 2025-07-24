@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { defineTabTool, defineTool } from './tool.js';
 import * as javascript from '../javascript.js';
 import { generateLocator } from './utils.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const snapshot = defineTool({
   capability: 'core',
@@ -57,7 +58,9 @@ const click = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const locator = await tab.refLocator(params);
     const button = params.button;
@@ -96,7 +99,9 @@ const drag = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const [startLocator, endLocator] = await tab.refLocators([
       { ref: params.startRef, element: params.startElement },
@@ -122,7 +127,9 @@ const hover = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const locator = await tab.refLocator(params);
     response.addCode(`await page.${await generateLocator(locator)}.hover();`);
@@ -148,7 +155,9 @@ const selectOption = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     const locator = await tab.refLocator(params);
     response.addCode(`// Select options [${params.values.join(', ')}] in ${params.element}`);

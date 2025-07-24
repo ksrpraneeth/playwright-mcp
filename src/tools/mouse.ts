@@ -16,6 +16,7 @@
 
 import { z } from 'zod';
 import { defineTabTool } from './tool.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 const elementSchema = z.object({
   element: z.string().describe('Human-readable element description used to obtain permission to interact with the element'),
@@ -58,7 +59,9 @@ const mouseClick = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     response.addCode(`// Click mouse at coordinates (${params.x}, ${params.y})`);
     response.addCode(`await page.mouse.move(${params.x}, ${params.y});`);
@@ -89,7 +92,9 @@ const mouseDrag = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     response.addCode(`// Drag mouse from (${params.startX}, ${params.startY}) to (${params.endX}, ${params.endY})`);
     response.addCode(`await page.mouse.move(${params.startX}, ${params.startY});`);

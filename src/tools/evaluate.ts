@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { defineTabTool } from './tool.js';
 import * as javascript from '../javascript.js';
 import { generateLocator } from './utils.js';
+import { snapshotConfig } from '../snapshotConfig.js';
 
 import type * as playwright from 'playwright';
 
@@ -39,7 +40,9 @@ const evaluate = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
-    response.setIncludeSnapshot();
+    if (snapshotConfig.includeSnapshots) {
+      response.setIncludeSnapshot();
+    }
 
     let locator: playwright.Locator | undefined;
     if (params.ref && params.element) {
