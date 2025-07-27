@@ -29,6 +29,7 @@ import tabs from './tools/tabs.js';
 import screenshot from './tools/screenshot.js';
 import wait from './tools/wait.js';
 import mouse from './tools/mouse.js';
+import changeDetector from './tools/changeDetector.js';
 
 import type { Tool } from './tools/tool.js';
 import type { FullConfig } from './config.js';
@@ -49,6 +50,7 @@ export const allTools: Tool<any>[] = [
   ...snapshot,
   ...tabs,
   ...wait,
+  ...changeDetector,
 ];
 
 export function filteredTools(config: FullConfig) {
