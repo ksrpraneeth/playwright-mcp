@@ -41,15 +41,16 @@ export type LLMConversation = {
 };
 
 export interface LLMDelegate {
-  createConversation(task: string, tools: Tool[]): LLMConversation;
+  createConversation(task: string, tools: Tool[], oneShot: boolean): LLMConversation;
   makeApiCall(conversation: LLMConversation): Promise<LLMToolCall[]>;
   addToolResults(conversation: LLMConversation, results: Array<{ toolCallId: string; content: string; isError?: boolean }>): void;
   checkDoneToolCall(toolCall: LLMToolCall): string | null;
 }
 
-export async function runTask(delegate: LLMDelegate, client: Client, task: string): Promise<string | undefined> {
+export async function runTask(delegate: LLMDelegate, client: Client, task: string, oneShot: boolean = false): Promise<LLMMessage[]> {
   const { tools } = await client.listTools();
-  const conversation = delegate.createConversation(task, tools);
+  const taskContent = oneShot ? `Perform following task: ${task}.` : `Perform following task: ${task}. Once the task is complete, call the "done" tool.`;
+  const conversation = delegate.createConversation(taskContent, tools, oneShot);
 
   for (let iteration = 0; iteration < 5; ++iteration) {
     debug('history')('Making API call for iteration', iteration);
@@ -59,10 +60,9 @@ export async function runTask(delegate: LLMDelegate, client: Client, task: strin
 
     const toolResults: Array<{ toolCallId: string; content: string; isError?: boolean }> = [];
     for (const toolCall of toolCalls) {
-      // Check if this is the "done" tool
       const doneResult = delegate.checkDoneToolCall(toolCall);
       if (doneResult !== null)
-        return doneResult;
+        return conversation.messages;
 
       const { name, arguments: args, id } = toolCall;
       try {
@@ -99,8 +99,9 @@ export async function runTask(delegate: LLMDelegate, client: Client, task: strin
       }
     }
 
-    // Add tool results to conversation
     delegate.addToolResults(conversation, toolResults);
+    if (oneShot)
+      return conversation.messages;
   }
 
   throw new Error('Failed to perform step, max attempts reached');

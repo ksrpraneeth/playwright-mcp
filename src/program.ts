@@ -18,11 +18,14 @@ import { program, Option } from 'commander';
 // @ts-ignore
 import { startTraceViewerServer } from 'playwright-core/lib/server';
 
-import { startHttpServer, startHttpTransport, startStdioTransport } from './transport.js';
+import * as mcpTransport from './mcp/transport.js';
 import { commaSeparatedList, resolveCLIConfig, semicolonSeparatedList } from './config.js';
-import { Server } from './server.js';
 import { packageJSON } from './package.js';
 import { runWithExtension } from './extension/main.js';
+import { BrowserServerBackend } from './browserServerBackend.js';
+import { Context } from './context.js';
+import { contextFactory } from './browserContextFactory.js';
+import { runLoopTools } from './loopTools/main.js';
 
 program
     .version('Version ' + packageJSON.version)
@@ -53,12 +56,10 @@ program
     .option('--user-data-dir <path>', 'path to the user data directory. If not specified, a temporary directory will be created.')
     .option('--viewport-size <size>', 'specify browser viewport size in pixels, for example "1280, 720"')
     .addOption(new Option('--extension', 'Connect to a running browser instance (Edge/Chrome only). Requires the "Playwright MCP Bridge" browser extension to be installed.').hideHelp())
+    .addOption(new Option('--loop-tools', 'Run loop tools').hideHelp())
     .addOption(new Option('--vision', 'Legacy option, use --caps=vision instead').hideHelp())
     .action(async options => {
-      if (options.extension) {
-        await runWithExtension(options);
-        return;
-      }
+      const abortController = setupExitWatchdog();
 
       if (options.vision) {
         // eslint-disable-next-line no-console
@@ -67,15 +68,18 @@ program
       }
       const config = await resolveCLIConfig(options);
 
-      const server = new Server(config);
-      server.setupExitWatchdog();
-
-      if (config.server.port !== undefined) {
-        const httpServer = await startHttpServer(config.server);
-        startHttpTransport(httpServer, server);
-      } else {
-        await startStdioTransport(server);
+      if (options.extension) {
+        await runWithExtension(config, abortController);
+        return;
       }
+      if (options.loopTools) {
+        await runLoopTools(config);
+        return;
+      }
+
+      const browserContextFactory = contextFactory(config.browser);
+      const serverBackendFactory = () => new BrowserServerBackend(config, browserContextFactory);
+      await mcpTransport.start(serverBackendFactory, config.server);
 
       if (config.saveTrace) {
         const server = await startTraceViewerServer();
@@ -85,5 +89,26 @@ program
         console.error('\nTrace viewer listening on ' + url);
       }
     });
+
+function setupExitWatchdog() {
+  const abortController = new AbortController();
+
+  let isExiting = false;
+  const handleExit = async () => {
+    if (isExiting)
+      return;
+    isExiting = true;
+    setTimeout(() => process.exit(0), 15000);
+    abortController.abort('Process exiting');
+    await Context.disposeAll();
+    process.exit(0);
+  };
+
+  process.stdin.on('close', handleExit);
+  process.on('SIGINT', handleExit);
+  process.on('SIGTERM', handleExit);
+
+  return abortController;
+}
 
 void program.parseAsync(process.argv);

@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-import { resolveCLIConfig } from '../config.js';
-import { startHttpServer, startHttpTransport, startStdioTransport } from '../transport.js';
-import { Server } from '../server.js';
 import { startCDPRelayServer } from './cdpRelay.js';
+import { BrowserServerBackend } from '../browserServerBackend.js';
+import * as mcpTransport from '../mcp/transport.js';
 
-import type { CLIOptions } from '../config.js';
+import type { FullConfig } from '../config.js';
 
-export async function runWithExtension(options: CLIOptions) {
-  const config = await resolveCLIConfig(options);
-  const contextFactory = await startCDPRelayServer(9225, config.browser.launchOptions.channel || 'chrome');
+export async function runWithExtension(config: FullConfig, abortController: AbortController) {
+  const contextFactory = await startCDPRelayServer(config.browser.launchOptions.channel || 'chrome', abortController);
 
-  const server = new Server(config, contextFactory);
-  server.setupExitWatchdog();
+  let backend: BrowserServerBackend | undefined;
+  const serverBackendFactory = () => {
+    if (backend)
+      throw new Error('Another MCP client is still connected. Only one connection at a time is allowed.');
+    backend = new BrowserServerBackend(config, contextFactory);
+    backend.onclose = () => {
+      contextFactory.clientDisconnected();
+      backend = undefined;
+    };
+    return backend;
+  };
 
-  if (options.port !== undefined) {
-    const httpServer = await startHttpServer({ port: options.port });
-    startHttpTransport(httpServer, server);
-  } else {
-    await startStdioTransport(server);
-  }
+  await mcpTransport.start(serverBackendFactory, config.server);
 }
